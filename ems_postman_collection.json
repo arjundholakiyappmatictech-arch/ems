@@ -1,0 +1,1532 @@
+{
+  "info": {
+    "name": "EMS - Employee Management System API",
+    "description": "Production Postman Collection for the EMS RESTful API.\n\n### Key Architecture Principles:\n- **Strict 2-Verb Model**: Exclusively uses `GET` and `POST` methods (No PUT/PATCH/DELETE).\n- **ADR-001 Envelope Standard**: Every response conforms to `{ is_error, message, data, errors }`.\n- **Authentication**: Laravel Sanctum Bearer tokens (`Authorization: Bearer {{token}}`).\n- **Role-Based Workflows**: Managers can self-register and manage HR resources; Employees are provisioned by managers and login-only.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "ems-api-collection-v2-3"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api/v1",
+      "type": "string",
+      "description": "Base URL for the EMS v1 REST API"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "Bearer authentication token automatically set upon successful Login or Register"
+    },
+    {
+      "key": "department_id",
+      "value": "1",
+      "type": "string",
+      "description": "Target department ID for single entity queries and updates"
+    },
+    {
+      "key": "designation_id",
+      "value": "1",
+      "type": "string",
+      "description": "Target designation ID for single entity queries and updates"
+    },
+    {
+      "key": "employee_id",
+      "value": "1",
+      "type": "string",
+      "description": "Target employee ID for single entity queries, status changes, and offboarding"
+    },
+    {
+      "key": "daily_report_id",
+      "value": "1",
+      "type": "string",
+      "description": "Target daily report ID for viewing, updating, or reviewing"
+    },
+    {
+      "key": "leave_type_id",
+      "value": "1",
+      "type": "string",
+      "description": "Target leave type ID for querying, updating, or deleting"
+    },
+    {
+      "key": "leave_request_id",
+      "value": "1",
+      "type": "string",
+      "description": "Target leave request ID for review actions (approve/reject/cancel)"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "description": "Endpoints for user authentication, manager self-registration, and token lifecycle.",
+      "item": [
+        {
+          "name": "Register Manager (Self-Signup)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test(\"Status code is 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"ADR-001 Envelope is valid\", function () {",
+                  "    pm.expect(response).to.have.property(\"is_error\", false);",
+                  "    pm.expect(response).to.have.property(\"data\");",
+                  "});",
+                  "if (response && response.data && response.data.token) {",
+                  "    pm.collectionVariables.set(\"token\", response.data.token);",
+                  "    console.log(\"Saved bearer token from Register response\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Jane\",\n  \"last_name\": \"Doe\",\n  \"email\": \"jane.manager@ems.com\",\n  \"password\": \"Password123!\",\n  \"password_confirmation\": \"Password123!\",\n  \"phone\": \"+1-555-0199\",\n  \"department_id\": 1,\n  \"designation_id\": 1,\n  \"device_name\": \"Postman Automation\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Allows a new Manager to self-register their account and create their initial employee profile. Returns user details and Sanctum Bearer token."
+          }
+        },
+        {
+          "name": "Login (Manager or Employee)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Token is returned in data\", function () {",
+                  "    pm.expect(response.is_error).to.be.false;",
+                  "    pm.expect(response.data).to.have.property(\"token\");",
+                  "});",
+                  "if (response && response.data && response.data.token) {",
+                  "    pm.collectionVariables.set(\"token\", response.data.token);",
+                  "    console.log(\"Saved bearer token from Login response\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"manager@ems.com\",\n  \"password\": \"password\",\n  \"device_name\": \"Postman Client\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticate with email and password for either Managers or Employees. Returns user profile, role, employee record, and a Sanctum Bearer token."
+          }
+        },
+        {
+          "name": "Get Current User Profile (/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Fetch the currently authenticated user's profile, assigned role, and linked employee record."
+          }
+        },
+        {
+          "name": "Logout (Revoke Current Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Revokes the active personal access token used to authenticate this request."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Departments",
+      "description": "Organization department management endpoints. Accessible by all authenticated staff for viewing; mutation requires Manager role.",
+      "item": [
+        {
+          "name": "List Departments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/departments?search=&per_page=15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "departments"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search query for department name or code"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15",
+                  "description": "Records per page"
+                }
+              ]
+            },
+            "description": "Retrieve paginated list of company departments with total employee count."
+          }
+        },
+        {
+          "name": "Get Department Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/departments/{{department_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "departments",
+                "{{department_id}}"
+              ]
+            },
+            "description": "Retrieve single department details including linked designations and headcounts."
+          }
+        },
+        {
+          "name": "Create Department (Manager Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set(\"department_id\", res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Quality Assurance\",\n  \"code\": \"QA\",\n  \"description\": \"Software testing, automated verification, and performance validation division.\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/departments/store",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "departments",
+                "store"
+              ]
+            },
+            "description": "Create a new organizational department (Manager only)."
+          }
+        },
+        {
+          "name": "Update Department (Manager Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Quality Engineering & Testing\",\n  \"code\": \"QET\",\n  \"description\": \"Continuous integration, automated end-to-end testing, and security assurance.\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/departments/{{department_id}}/update",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "departments",
+                "{{department_id}}",
+                "update"
+              ]
+            },
+            "description": "Update an existing department's name, code, or description (Strict 2-verb POST endpoint)."
+          }
+        },
+        {
+          "name": "Delete Department (Manager Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/departments/{{department_id}}/destroy",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "departments",
+                "{{department_id}}",
+                "destroy"
+              ]
+            },
+            "description": "Safely delete a department. Blocked with 422 if active employees or designations are assigned."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Designations",
+      "description": "Job titles and designations scoped to departments. Mutation restricted to Managers.",
+      "item": [
+        {
+          "name": "List Designations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/designations?department_id=&search=&per_page=15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "designations"
+              ],
+              "query": [
+                {
+                  "key": "department_id",
+                  "value": "",
+                  "description": "Filter by department ID"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search query for title"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15",
+                  "description": "Records per page"
+                }
+              ]
+            },
+            "description": "Retrieve list of job titles and designations with department associations."
+          }
+        },
+        {
+          "name": "Get Designation Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/designations/{{designation_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "designations",
+                "{{designation_id}}"
+              ]
+            },
+            "description": "Retrieve single designation details."
+          }
+        },
+        {
+          "name": "Create Designation (Manager Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set(\"designation_id\", res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"department_id\": 1,\n  \"title\": \"Senior QA Automation Engineer\",\n  \"description\": \"Leads automated UI, API, and performance testing frameworks.\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/designations/store",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "designations",
+                "store"
+              ]
+            },
+            "description": "Create a new designation attached to a department."
+          }
+        },
+        {
+          "name": "Update Designation (Manager Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"department_id\": 1,\n  \"title\": \"Principal QA Automation Engineer\",\n  \"description\": \"Architects end-to-end automated testing across microservices.\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/designations/{{designation_id}}/update",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "designations",
+                "{{designation_id}}",
+                "update"
+              ]
+            },
+            "description": "Update designation attributes (POST verb)."
+          }
+        },
+        {
+          "name": "Delete Designation (Manager Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/designations/{{designation_id}}/destroy",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "designations",
+                "{{designation_id}}",
+                "destroy"
+              ]
+            },
+            "description": "Remove a designation record. Blocked if active employees are assigned."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Employees",
+      "description": "Core employee lifecycle and profile management. Employees can view directories; Managers can onboard, modify, change status, and offboard.",
+      "item": [
+        {
+          "name": "List Employees (Directory)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/employees?department_id=&status=active&search=&per_page=15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "employees"
+              ],
+              "query": [
+                {
+                  "key": "department_id",
+                  "value": "",
+                  "description": "Filter by department ID"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status: active, probation, on_leave, terminated"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by first name, last name, employee code, or email"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15",
+                  "description": "Page size"
+                }
+              ]
+            },
+            "description": "Browse company employee directory with nested department, designation, and manager details."
+          }
+        },
+        {
+          "name": "Get Employee Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/employees/{{employee_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "employees",
+                "{{employee_id}}"
+              ]
+            },
+            "description": "Retrieve comprehensive employee profile."
+          }
+        },
+        {
+          "name": "Onboard New Employee (Manager Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set(\"employee_id\", res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Michael\",\n  \"last_name\": \"Scott\",\n  \"email\": \"michael.scott@ems.com\",\n  \"password\": \"Password123!\",\n  \"role\": \"employee\",\n  \"phone\": \"+1-555-0145\",\n  \"date_of_birth\": \"1988-04-12\",\n  \"gender\": \"male\",\n  \"joining_date\": \"2026-02-01\",\n  \"department_id\": 1,\n  \"designation_id\": 1,\n  \"manager_id\": 1,\n  \"salary\": 85000,\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/employees/store",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "employees",
+                "store"
+              ]
+            },
+            "description": "Onboards a new employee into the organization. Creates their user login credentials and employee profile simultaneously. Only Managers can perform this action."
+          }
+        },
+        {
+          "name": "Update Employee Profile (Manager Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Michael\",\n  \"last_name\": \"Scott\",\n  \"phone\": \"+1-555-0199\",\n  \"date_of_birth\": \"1988-04-12\",\n  \"gender\": \"male\",\n  \"joining_date\": \"2026-02-01\",\n  \"department_id\": 1,\n  \"designation_id\": 1,\n  \"manager_id\": 1,\n  \"salary\": 92000,\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/employees/{{employee_id}}/update",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "employees",
+                "{{employee_id}}",
+                "update"
+              ]
+            },
+            "description": "Updates an employee's personal and organizational details (POST verb)."
+          }
+        },
+        {
+          "name": "Update Employee Status Lifecycle (Manager Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"probation\",\n  \"reason\": \"Standard 90-day evaluation period for new joiners.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/employees/{{employee_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "employees",
+                "{{employee_id}}",
+                "status"
+              ]
+            },
+            "description": "Updates an employee's lifecycle status (`active`, `probation`, `on_leave`, `terminated`)."
+          }
+        },
+        {
+          "name": "Delete / Offboard Employee (Manager Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/employees/{{employee_id}}/destroy",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "employees",
+                "{{employee_id}}",
+                "destroy"
+              ]
+            },
+            "description": "Offboards and deletes an employee profile and soft-deletes their user credentials."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Attendance & Punch",
+      "description": "Daily punch-in/out tracking and attendance history. Enforces one punch-in and punch-out per calendar day.",
+      "item": [
+        {
+          "name": "Get Attendance Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/attendances?employee_id=&department_id=&date=&month=&year=&per_page=15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "attendances"
+              ],
+              "query": [
+                {
+                  "key": "employee_id",
+                  "value": "",
+                  "description": "Filter by employee ID (Managers can filter any, employees see own)"
+                },
+                {
+                  "key": "department_id",
+                  "value": "",
+                  "description": "Filter by department ID (Manager only)"
+                },
+                {
+                  "key": "date",
+                  "value": "",
+                  "description": "Exact date: YYYY-MM-DD"
+                },
+                {
+                  "key": "month",
+                  "value": "",
+                  "description": "Numeric month: 1-12"
+                },
+                {
+                  "key": "year",
+                  "value": "",
+                  "description": "Numeric year: e.g. 2026"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15",
+                  "description": "Records per page"
+                }
+              ]
+            },
+            "description": "List attendance history. Non-manager employees are automatically scoped to only their own logs."
+          }
+        },
+        {
+          "name": "Get Today Punch Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/attendances/today",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "attendances",
+                "today"
+              ]
+            },
+            "description": "Inspect today's live punch state: `is_clocked_in`, `is_clocked_out`, and today's attendance record."
+          }
+        },
+        {
+          "name": "Clock In (Start Day)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Starting shift from headquarters office.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/attendances/clock-in",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "attendances",
+                "clock-in"
+              ]
+            },
+            "description": "Clock in for today. Fails if user has already clocked in today (422)."
+          }
+        },
+        {
+          "name": "Clock Out (End Day)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Finished day tasks and daily report submitted.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/attendances/clock-out",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "attendances",
+                "clock-out"
+              ]
+            },
+            "description": "Clock out for today and compute total worked hours. Fails if not clocked in or already clocked out (422)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Daily Work Reports",
+      "description": "End-of-day standup work reports. Employees submit their daily progress; Managers review and provide feedback.",
+      "item": [
+        {
+          "name": "List Daily Work Reports Feed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/daily-reports?employee_id=&department_id=&date=&status=&per_page=15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "daily-reports"
+              ],
+              "query": [
+                {
+                  "key": "employee_id",
+                  "value": "",
+                  "description": "Filter by employee ID"
+                },
+                {
+                  "key": "department_id",
+                  "value": "",
+                  "description": "Filter by department ID"
+                },
+                {
+                  "key": "date",
+                  "value": "",
+                  "description": "Exact date: YYYY-MM-DD"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by status: pending, reviewed"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15",
+                  "description": "Records per page"
+                }
+              ]
+            },
+            "description": "List daily reports feed. Employees see their own reports; Managers see their team members' reports."
+          }
+        },
+        {
+          "name": "Get Daily Report Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/daily-reports/{{daily_report_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "daily-reports",
+                "{{daily_report_id}}"
+              ]
+            },
+            "description": "Retrieve complete report details including employee information, associated attendance log, and manager remarks."
+          }
+        },
+        {
+          "name": "Submit Daily Work Report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set(\"daily_report_id\", res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tasks_completed\": \"1. Implemented Postman Collection generator script.\\n2. Verified all 40 REST endpoints against ADR-001.\\n3. Updated documentation.\",\n  \"blockers\": \"No blockers encountered.\",\n  \"next_plan\": \"Review frontend attendance punch modal integration.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/daily-reports/store",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "daily-reports",
+                "store"
+              ]
+            },
+            "description": "Submit today's daily work report. Auto-links to today's attendance record if clocked in. One report allowed per day (422 on duplicate)."
+          }
+        },
+        {
+          "name": "Update Daily Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tasks_completed\": \"1. Implemented Postman Collection generator script.\\n2. Verified all 40 REST endpoints against ADR-001.\\n3. Updated documentation.\\n4. Tested Manager registration flow.\",\n  \"blockers\": \"None\",\n  \"next_plan\": \"Complete end-to-end integration checklist.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/daily-reports/{{daily_report_id}}/update",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "daily-reports",
+                "{{daily_report_id}}",
+                "update"
+              ]
+            },
+            "description": "Update a pending daily report before it is reviewed by a manager."
+          }
+        },
+        {
+          "name": "Review Daily Report (Manager Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"manager_remarks\": \"Excellent progress on the API collection and verification work! Approved.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/daily-reports/{{daily_report_id}}/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "daily-reports",
+                "{{daily_report_id}}",
+                "review"
+              ]
+            },
+            "description": "Managers review a team member's daily work report and attach official remarks and feedback. Managers cannot review their own reports."
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Leave Management",
+      "description": "Leave policy configuration and leave application approval workflow.",
+      "item": [
+        {
+          "name": "Leave Types",
+          "description": "Configurable annual leave quotas and policies.",
+          "item": [
+            {
+              "name": "List Leave Types",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/leave-types?is_active=true",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "leave-types"
+                  ],
+                  "query": [
+                    {
+                      "key": "is_active",
+                      "value": "true",
+                      "description": "Filter active leave types only"
+                    }
+                  ]
+                },
+                "description": "List all configured leave types (e.g. Annual, Sick, Casual, Maternity)."
+              }
+            },
+            {
+              "name": "Get Leave Type Details",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/leave-types/{{leave_type_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "leave-types",
+                    "{{leave_type_id}}"
+                  ]
+                },
+                "description": "Retrieve details of a single leave type."
+              }
+            },
+            {
+              "name": "Create Leave Type (Manager Only)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "if (res && res.data && res.data.id) {",
+                      "    pm.collectionVariables.set(\"leave_type_id\", res.data.id);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Paternity Leave\",\n  \"days_per_year\": 14,\n  \"is_paid\": true,\n  \"is_active\": true\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/leave-types/store",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "leave-types",
+                    "store"
+                  ]
+                },
+                "description": "Create a new leave type policy (Manager only)."
+              }
+            },
+            {
+              "name": "Update Leave Type (Manager Only)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Parental Leave\",\n  \"days_per_year\": 21,\n  \"is_paid\": true,\n  \"is_active\": true\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/leave-types/{{leave_type_id}}/update",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "leave-types",
+                    "{{leave_type_id}}",
+                    "update"
+                  ]
+                },
+                "description": "Update an existing leave type's parameters (POST verb)."
+              }
+            },
+            {
+              "name": "Delete Leave Type (Manager Only)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/leave-types/{{leave_type_id}}/destroy",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "leave-types",
+                    "{{leave_type_id}}",
+                    "destroy"
+                  ]
+                },
+                "description": "Delete a leave type. Fails if leave requests are already attached to it."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Leave Requests",
+          "description": "State-machine-governed leave application requests (Pending -> Approved / Rejected / Cancelled).",
+          "item": [
+            {
+              "name": "List Leave Requests",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/leave-requests?employee_id=&status=pending&per_page=15",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "leave-requests"
+                  ],
+                  "query": [
+                    {
+                      "key": "employee_id",
+                      "value": "",
+                      "description": "Filter by employee ID (Managers only)"
+                    },
+                    {
+                      "key": "status",
+                      "value": "pending",
+                      "description": "Filter by status: pending, approved, rejected, cancelled"
+                    },
+                    {
+                      "key": "per_page",
+                      "value": "15",
+                      "description": "Records per page"
+                    }
+                  ]
+                },
+                "description": "List leave applications. Employees see only their own requests; Managers see all requests requiring approval."
+              }
+            },
+            {
+              "name": "Get Leave Request Details",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/leave-requests/{{leave_request_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "leave-requests",
+                    "{{leave_request_id}}"
+                  ]
+                },
+                "description": "Retrieve full details of a leave application."
+              }
+            },
+            {
+              "name": "Submit Leave Request",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "if (res && res.data && res.data.id) {",
+                      "    pm.collectionVariables.set(\"leave_request_id\", res.data.id);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"leave_type_id\": 1,\n  \"start_date\": \"2026-12-01\",\n  \"end_date\": \"2026-12-03\",\n  \"reason\": \"Attending annual global engineering summit.\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/leave-requests/store",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "leave-requests",
+                    "store"
+                  ]
+                },
+                "description": "Submit a new leave application. Automatically verifies the employee has sufficient remaining quota for the year. State initializes to 'pending'."
+              }
+            },
+            {
+              "name": "Approve Leave Request (Manager Only)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/leave-requests/{{leave_request_id}}/approve",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "leave-requests",
+                    "{{leave_request_id}}",
+                    "approve"
+                  ]
+                },
+                "description": "Managers approve a pending leave application. Fails if manager tries to approve their own request."
+              }
+            },
+            {
+              "name": "Reject Leave Request (Manager Only)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action_reason\": \"High team workload and client deliverables scheduled during this period.\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/leave-requests/{{leave_request_id}}/reject",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "leave-requests",
+                    "{{leave_request_id}}",
+                    "reject"
+                  ]
+                },
+                "description": "Managers reject a pending leave application with a required reason."
+              }
+            },
+            {
+              "name": "Cancel Leave Request (Employee Only)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/leave-requests/{{leave_request_id}}/cancel",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "leave-requests",
+                    "{{leave_request_id}}",
+                    "cancel"
+                  ]
+                },
+                "description": "Employees cancel their own pending leave request."
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

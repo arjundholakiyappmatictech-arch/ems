@@ -38,6 +38,7 @@ export default function DepartmentModal({
     resolver: zodResolver(departmentSchema),
     defaultValues: {
       name: '',
+      code: '',
       description: '',
     },
   });
@@ -46,10 +47,11 @@ export default function DepartmentModal({
     if (department) {
       reset({
         name: department.name || '',
+        code: department.code || '',
         description: department.description || '',
       });
     } else {
-      reset({ name: '', description: '' });
+      reset({ name: '', code: '', description: '' });
     }
   }, [department, reset, isOpen]);
 
@@ -71,46 +73,78 @@ export default function DepartmentModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-blue-600" />
-            {isEditing ? 'Edit Department' : 'Create Department'}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? 'Update the department name and purpose description.'
-              : 'Add a new functional department to the organization structure.'}
-          </DialogDescription>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 border border-blue-200/60">
+              <Building2 className="h-5 w-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-lg font-semibold text-slate-900">
+                {isEditing ? 'Edit Department' : 'Create Department'}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                Define an organizational business unit.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 py-2">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 pt-2">
+          {/* Department Name */}
           <div className="space-y-1.5">
-            <Label htmlFor="dept-name">Department Name *</Label>
+            <Label htmlFor="dept-name" className="text-xs font-medium text-slate-700">
+              Department Name *
+            </Label>
             <Input
               id="dept-name"
-              placeholder="e.g. Engineering, Human Resources"
+              placeholder="e.g. Engineering, Sales & Marketing"
               disabled={isLoading}
               {...register('name')}
             />
             {errors.name && (
-              <p className="text-xs font-medium text-red-600">{errors.name.message}</p>
+              <p className="text-[11px] font-medium text-rose-600">{errors.name.message}</p>
             )}
           </div>
 
+          {/* Department Code */}
           <div className="space-y-1.5">
-            <Label htmlFor="dept-desc">Description</Label>
+            <Label htmlFor="dept-code" className="text-xs font-medium text-slate-700">
+              Department Code * (e.g. ENG, MKT, HR)
+            </Label>
+            <Input
+              id="dept-code"
+              placeholder="e.g. ENG"
+              maxLength={20}
+              className="uppercase font-mono"
+              disabled={isLoading}
+              {...register('code')}
+            />
+            {errors.code && (
+              <p className="text-[11px] font-medium text-rose-600">{errors.code.message}</p>
+            )}
+          </div>
+
+          {/* Description */}
+          <div className="space-y-1.5">
+            <Label htmlFor="dept-desc" className="text-xs font-medium text-slate-700">
+              Description (Optional)
+            </Label>
             <Textarea
               id="dept-desc"
-              placeholder="Core responsibilities and departmental functions..."
+              placeholder="Division mission, scope, and technical responsibilities..."
+              className="min-h-[80px] text-xs resize-y"
               disabled={isLoading}
               {...register('description')}
             />
+            {errors.description && (
+              <p className="text-[11px] font-medium text-rose-600">{errors.description.message}</p>
+            )}
           </div>
 
-          <DialogFooter className="pt-3 border-t border-slate-100">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+          <DialogFooter className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+            <Button type="submit" size="sm" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -128,4 +162,3 @@ export default function DepartmentModal({
     </Dialog>
   );
 }
-

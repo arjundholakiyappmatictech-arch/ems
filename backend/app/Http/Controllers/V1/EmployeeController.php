@@ -27,17 +27,17 @@ class EmployeeController extends Controller
 
             return $this->successResponse(
                 'Employees retrieved successfully.',
-                EmployeeResource::collection($employees)->response()->getData(true)
+                EmployeeResource::collection($employees)
             );
         } catch (Throwable $e) {
             return $this->handleException($e);
         }
     }
 
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
         try {
-            $employee = $this->employeeService->getById($id);
+            $employee = $this->employeeService->getById($request->user(), $id);
 
             return $this->successResponse('Employee profile retrieved.', new EmployeeResource($employee));
         } catch (Throwable $e) {

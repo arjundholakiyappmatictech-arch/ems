@@ -25,7 +25,7 @@ class AttendanceController extends Controller
 
             return $this->successResponse(
                 'Attendance records retrieved successfully.',
-                AttendanceResource::collection($attendances)->response()->getData(true)
+                AttendanceResource::collection($attendances)
             );
         } catch (Throwable $e) {
             return $this->handleException($e);

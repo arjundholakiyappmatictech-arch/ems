@@ -1,17 +1,16 @@
 import { z } from 'zod';
 
 export const dailyReportSchema = z.object({
-  deliverables: z
+  tasks_completed: z
     .string()
-    .min(10, 'Please describe your completed deliverables (at least 10 characters)'),
+    .min(5, 'Please describe tasks and deliverables completed today (at least 5 characters)'),
   blockers: z.string().optional().default(''),
   next_plan: z.string().optional().default(''),
-  report_date: z.string().min(1, 'Report date is required'),
 });
 
 export const reviewReportSchema = z.object({
-  review_remarks: z
+  manager_remarks: z
     .string()
-    .min(2, 'Please provide review remarks or feedback'),
+    .min(2, 'Please provide manager feedback or remarks (at least 2 characters)')
+    .max(2000, 'Remarks cannot exceed 2000 characters'),
 });
-

@@ -14,11 +14,18 @@ class EmployeeService
 {
     /**
      * List employees with search and department filtering.
+     * Restricted to Managers only.
      *
      * @param  array{department_id?: int, status?: string, search?: string, per_page?: int}  $filters
+     *
+     * @throws UnauthorizedRoleException
      */
     public function list(User $user, array $filters = []): LengthAwarePaginator|Collection
     {
+        if (! $user->isManager()) {
+            throw new UnauthorizedRoleException('Only managers can view the full employee directory.');
+        }
+
         $query = Employee::query()
             ->with(['department', 'designation', 'manager', 'user'])
             ->orderBy('id', 'desc');
@@ -50,11 +57,20 @@ class EmployeeService
 
     /**
      * Retrieve single employee with all related entities.
+     * Managers can view any employee; regular employees can only view their own profile.
+     *
+     * @throws UnauthorizedRoleException
      */
-    public function getById(int $id): Employee
+    public function getById(User $user, int $id): Employee
     {
-        return Employee::with(['department', 'designation', 'manager', 'user', 'directReports'])
+        $employee = Employee::with(['department', 'designation', 'manager', 'user', 'directReports'])
             ->findOrFail($id);
+
+        if ($user->isEmployee() && $user->employee?->id !== $employee->id) {
+            throw new UnauthorizedRoleException('You can only view your own employee profile.');
+        }
+
+        return $employee;
     }
 
     /**

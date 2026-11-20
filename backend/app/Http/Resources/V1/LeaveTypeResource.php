@@ -19,12 +19,10 @@ class LeaveTypeResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'days_per_year' => $this->days_per_year,
-            'is_paid' => $this->is_paid,
-            'is_active' => $this->is_active,
-            'requests_count' => $this->whenCounted('leaveRequests'),
+            'is_paid' => (bool) $this->is_paid,
+            'is_active' => (bool) $this->is_active,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
 }
-

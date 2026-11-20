@@ -13,7 +13,8 @@ import api from '@/lib/api/api';
  */
 export async function getDailyReports(filters = {}, signal) {
   const response = await api.get('/daily-reports', { params: filters, signal });
-  return response.data?.data ?? [];
+  const raw = response.data?.data;
+  return Array.isArray(raw) ? raw : (raw?.data ?? []);
 }
 
 /**
@@ -53,7 +54,7 @@ export async function updateDailyReport(id, payload, signal) {
 /**
  * Submit manager review/remarks for a daily report (Manager only).
  * @param {number|string} id
- * @param {{ review_remarks: string }} payload
+ * @param {{ manager_remarks: string }} payload
  * @param {AbortSignal} [signal]
  * @returns {Promise<object>}
  */

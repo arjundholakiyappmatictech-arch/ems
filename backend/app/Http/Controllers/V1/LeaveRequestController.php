@@ -26,7 +26,7 @@ class LeaveRequestController extends Controller
 
             return $this->successResponse(
                 'Leave requests retrieved successfully.',
-                LeaveRequestResource::collection($requests)->response()->getData(true)
+                LeaveRequestResource::collection($requests)
             );
         } catch (Throwable $e) {
             return $this->handleException($e);

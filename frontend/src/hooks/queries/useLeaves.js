@@ -42,6 +42,7 @@ export function useCreateLeaveRequestMutation() {
     mutationFn: (payload) => createLeaveRequest(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: leaveKeys.requests() });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -52,6 +53,7 @@ export function useApproveLeaveRequestMutation() {
     mutationFn: ({ id, payload }) => approveLeaveRequest(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: leaveKeys.requests() });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -62,6 +64,7 @@ export function useRejectLeaveRequestMutation() {
     mutationFn: ({ id, payload }) => rejectLeaveRequest(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: leaveKeys.requests() });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -72,7 +75,7 @@ export function useCancelLeaveRequestMutation() {
     mutationFn: (id) => cancelLeaveRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: leaveKeys.requests() });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
-

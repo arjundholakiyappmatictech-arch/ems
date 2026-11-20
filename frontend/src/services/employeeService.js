@@ -14,7 +14,8 @@ import api from '@/lib/api/api';
  */
 export async function getEmployees(filters = {}, signal) {
   const response = await api.get('/employees', { params: filters, signal });
-  return response.data?.data ?? [];
+  const raw = response.data?.data;
+  return Array.isArray(raw) ? raw : (raw?.data ?? []);
 }
 
 /**

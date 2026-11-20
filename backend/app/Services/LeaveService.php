@@ -136,8 +136,17 @@ class LeaveService
             throw new UnauthorizedRoleException;
         }
 
-        if ($request->employee?->user_id === $user->id) {
+        $employee = $request->employee;
+
+        if ($employee?->user_id === $user->id) {
             throw new CannotApproveOwnLeaveException;
+        }
+
+        // Direct Manager Enforcement:
+        // If employee has an assigned direct manager, only that manager can approve the leave request.
+        $managerEmployeeId = $user->employee?->id;
+        if ($employee?->manager_id && $employee->manager_id !== $managerEmployeeId) {
+            throw new UnauthorizedRoleException("Only the employee's assigned direct manager can approve this leave request.");
         }
 
         if ($request->status !== 'pending') {
@@ -169,8 +178,17 @@ class LeaveService
             throw new UnauthorizedRoleException;
         }
 
-        if ($request->employee?->user_id === $user->id) {
+        $employee = $request->employee;
+
+        if ($employee?->user_id === $user->id) {
             throw new CannotApproveOwnLeaveException;
+        }
+
+        // Direct Manager Enforcement:
+        // If employee has an assigned direct manager, only that manager can reject the leave request.
+        $managerEmployeeId = $user->employee?->id;
+        if ($employee?->manager_id && $employee->manager_id !== $managerEmployeeId) {
+            throw new UnauthorizedRoleException("Only the employee's assigned direct manager can reject this leave request.");
         }
 
         if ($request->status !== 'pending') {

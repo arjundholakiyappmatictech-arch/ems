@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, FileText } from 'lucide-react';
+import { Loader2, FileText, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
 import { dailyReportSchema } from './dailyReportSchema';
 import {
   Dialog,
@@ -14,7 +14,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { mapLaravelErrorsToForm } from '@/lib/utils/formErrors';
@@ -37,27 +36,24 @@ export default function SubmitReportModal({
   } = useForm({
     resolver: zodResolver(dailyReportSchema),
     defaultValues: {
-      deliverables: '',
+      tasks_completed: '',
       blockers: '',
       next_plan: '',
-      report_date: new Date().toISOString().slice(0, 10),
     },
   });
 
   React.useEffect(() => {
     if (report) {
       reset({
-        deliverables: report.deliverables || '',
+        tasks_completed: report.tasks_completed || '',
         blockers: report.blockers || '',
         next_plan: report.next_plan || '',
-        report_date: report.report_date ? String(report.report_date).slice(0, 10) : new Date().toISOString().slice(0, 10),
       });
     } else {
       reset({
-        deliverables: '',
+        tasks_completed: '',
         blockers: '',
         next_plan: '',
-        report_date: new Date().toISOString().slice(0, 10),
       });
     }
   }, [report, reset, isOpen]);
@@ -80,81 +76,88 @@ export default function SubmitReportModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-blue-600" />
-            {isEditing ? 'Update Daily Work Report' : 'Submit Daily Work Report'}
-          </DialogTitle>
-          <DialogDescription>
-            Record what you accomplished today, any blockers faced, and your plans for tomorrow.
-          </DialogDescription>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 border border-blue-200/60">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-lg font-semibold text-slate-900">
+                {isEditing ? 'Update Daily Work Report' : 'Submit Daily Work Report'}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                Log completed tasks, dependencies, and upcoming plans for today.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 py-2">
-          {/* Report Date */}
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 pt-2">
+          {/* Tasks Completed */}
           <div className="space-y-1.5">
-            <Label htmlFor="rep-date">Report Date *</Label>
-            <Input
-              id="rep-date"
-              type="date"
-              disabled={isLoading || isEditing}
-              {...register('report_date')}
-            />
-            {errors.report_date && (
-              <p className="text-xs font-medium text-red-600">{errors.report_date.message}</p>
-            )}
-          </div>
-
-          {/* Key Deliverables */}
-          <div className="space-y-1.5">
-            <Label htmlFor="rep-deliverables">Today&apos;s Deliverables & Tasks *</Label>
+            <Label htmlFor="tasks_completed" className="text-xs font-medium text-slate-700">
+              Completed Tasks & Deliverables *
+            </Label>
             <Textarea
-              id="rep-deliverables"
-              placeholder="List the key features, bug fixes, or deliverables completed today..."
-              className="min-h-[100px]"
+              id="tasks_completed"
+              placeholder="e.g. Implemented OAuth token revocation, resolved race condition in leave balance calculation, refactored data access layer."
+              className="min-h-[110px] text-xs resize-y"
               disabled={isLoading}
-              {...register('deliverables')}
+              {...register('tasks_completed')}
             />
-            {errors.deliverables && (
-              <p className="text-xs font-medium text-red-600">{errors.deliverables.message}</p>
+            {errors.tasks_completed && (
+              <p className="text-[11px] font-medium text-rose-600">{errors.tasks_completed.message}</p>
             )}
           </div>
 
           {/* Blockers */}
           <div className="space-y-1.5">
-            <Label htmlFor="rep-blockers">Blockers / Dependencies (Optional)</Label>
+            <Label htmlFor="blockers" className="text-xs font-medium text-slate-700">
+              Blockers / Impediments (Optional)
+            </Label>
             <Textarea
-              id="rep-blockers"
-              placeholder="Any roadblocks, pending reviews, or missing access..."
+              id="blockers"
+              placeholder="e.g. Waiting on AWS IAM credentials for staging deployment."
+              className="min-h-[70px] text-xs resize-y"
               disabled={isLoading}
               {...register('blockers')}
             />
+            {errors.blockers && (
+              <p className="text-[11px] font-medium text-rose-600">{errors.blockers.message}</p>
+            )}
           </div>
 
           {/* Next Plan */}
           <div className="space-y-1.5">
-            <Label htmlFor="rep-plan">Tomorrow&apos;s Action Plan (Optional)</Label>
+            <Label htmlFor="next_plan" className="text-xs font-medium text-slate-700">
+              Next Shift Plan (Optional)
+            </Label>
             <Textarea
-              id="rep-plan"
-              placeholder="What will you tackle during your next shift..."
+              id="next_plan"
+              placeholder="e.g. Integrate Sonner toast alerts, write regression tests for attendance punch status."
+              className="min-h-[70px] text-xs resize-y"
               disabled={isLoading}
               {...register('next_plan')}
             />
+            {errors.next_plan && (
+              <p className="text-[11px] font-medium text-rose-600">{errors.next_plan.message}</p>
+            )}
           </div>
 
-          <DialogFooter className="pt-3 border-t border-slate-100">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+          <DialogFooter className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+            <Button type="submit" size="sm" disabled={isLoading} className="gap-1.5">
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Submitting...</span>
                 </>
-              ) : isEditing ? (
-                'Save Changes'
               ) : (
-                'Submit Report'
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>{isEditing ? 'Save Changes' : 'Submit Report'}</span>
+                </>
               )}
             </Button>
           </DialogFooter>
@@ -163,4 +166,3 @@ export default function SubmitReportModal({
     </Dialog>
   );
 }
-

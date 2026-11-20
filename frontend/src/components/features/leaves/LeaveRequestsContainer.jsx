@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { AlertCircle, X } from 'lucide-react';
 import LeaveRequestsView from './LeaveRequestsView';
 import ApplyLeaveModal from './ApplyLeaveModal';
 import LeaveActionModal from './LeaveActionModal';
@@ -12,15 +13,18 @@ import {
   useRejectLeaveRequestMutation,
   useCancelLeaveRequestMutation,
 } from '@/hooks/queries/useLeaves';
-import { useIsManager } from '@/lib/store/authStore';
+import { useAuthStore, useIsManager } from '@/lib/store/authStore';
 
 export default function LeaveRequestsContainer() {
   const isManager = useIsManager();
+  const currentUser = useAuthStore((s) => s.user);
+  const currentEmployeeId = currentUser?.employee?.id;
 
   // Filters state
   const [searchTerm, setSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [typeFilter, setTypeFilter] = React.useState('all');
+  const [errorMessage, setErrorMessage] = React.useState('');
 
   // Modal states
   const [isApplyModalOpen, setIsApplyModalOpen] = React.useState(false);
@@ -41,7 +45,14 @@ export default function LeaveRequestsContainer() {
 
   // Handlers
   const handleApplySubmit = async (payload) => {
-    await createLeaveMutation.mutateAsync(payload);
+    setErrorMessage('');
+    try {
+      await createLeaveMutation.mutateAsync(payload);
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to submit leave request';
+      setErrorMessage(msg);
+      throw err;
+    }
   };
 
   const handleOpenActionModal = (request, type) => {
@@ -52,44 +63,52 @@ export default function LeaveRequestsContainer() {
 
   const handleActionSubmit = async (id, payload) => {
     setProcessingId(id);
+    setErrorMessage('');
     try {
       if (actionType === 'approve') {
         await approveMutation.mutateAsync({ id, payload });
       } else {
         await rejectMutation.mutateAsync({ id, payload });
       }
+    } catch (err) {
+      const msg = err.response?.data?.message || `Failed to ${actionType} leave request`;
+      setErrorMessage(msg);
+      throw err;
     } finally {
       setProcessingId(null);
     }
   };
 
   const handleCancelRequest = async (id) => {
-    if (confirm('Are you sure you want to cancel this leave application?')) {
-      setProcessingId(id);
-      try {
-        await cancelMutation.mutateAsync(id);
-      } catch (err) {
-        alert(err.response?.data?.message || 'Failed to cancel leave request');
-      } finally {
-        setProcessingId(null);
-      }
+    setProcessingId(id);
+    setErrorMessage('');
+    try {
+      await cancelMutation.mutateAsync(id);
+    } catch (err) {
+      setErrorMessage(err.response?.data?.message || 'Failed to cancel leave request');
+    } finally {
+      setProcessingId(null);
     }
   };
 
   // Synchronously filter requests during render (zero useEffect)
   const filteredRequests = React.useMemo(() => {
     return leaveRequests.filter((req) => {
-      const user = req.employee?.user;
-      const lowerSearch = searchTerm.toLowerCase();
+      const emp = req.employee;
+      const empName = (emp?.name || emp?.user?.name || '').toLowerCase();
+      const empCode = (emp?.code || emp?.employee_code || '').toLowerCase();
+      const reason = (req.reason || '').toLowerCase();
 
+      const search = searchTerm.toLowerCase();
       const matchesSearch =
         !searchTerm ||
-        user?.name?.toLowerCase().includes(lowerSearch) ||
-        req.reason?.toLowerCase().includes(lowerSearch) ||
-        req.employee?.employee_code?.toLowerCase().includes(lowerSearch);
+        empName.includes(search) ||
+        empCode.includes(search) ||
+        reason.includes(search);
 
+      const reqTypeId = req.leave_type_id || req.leave_type?.id;
       const matchesType =
-        typeFilter === 'all' || String(req.leave_type_id) === String(typeFilter);
+        typeFilter === 'all' || String(reqTypeId) === String(typeFilter);
 
       const matchesStatus =
         statusFilter === 'all' || req.status === statusFilter;
@@ -99,9 +118,27 @@ export default function LeaveRequestsContainer() {
   }, [leaveRequests, searchTerm, typeFilter, statusFilter]);
 
   return (
-    <>
+    <div className="space-y-6">
+      {/* Error Banner */}
+      {errorMessage && (
+        <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMessage('')}
+            className="text-rose-500 hover:text-rose-700 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       <LeaveRequestsView
         leaveRequests={filteredRequests}
+        allLeaveRequests={leaveRequests}
         leaveTypes={leaveTypes}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -110,6 +147,8 @@ export default function LeaveRequestsContainer() {
         typeFilter={typeFilter}
         onTypeFilterChange={setTypeFilter}
         isManager={isManager}
+        currentUserId={currentUser?.id}
+        currentEmployeeId={currentEmployeeId}
         onOpenApplyModal={() => setIsApplyModalOpen(true)}
         onOpenActionModal={handleOpenActionModal}
         onCancelRequest={handleCancelRequest}
@@ -136,7 +175,6 @@ export default function LeaveRequestsContainer() {
           isLoading={approveMutation.isPending || rejectMutation.isPending}
         />
       )}
-    </>
+    </div>
   );
 }
-

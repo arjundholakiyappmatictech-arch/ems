@@ -8,7 +8,8 @@ import api from '@/lib/api/api';
 
 export async function getDesignations(filters = {}, signal) {
   const response = await api.get('/designations', { params: filters, signal });
-  return response.data?.data ?? [];
+  const raw = response.data?.data;
+  return Array.isArray(raw) ? raw : (raw?.data ?? []);
 }
 
 export async function getDesignation(id, signal) {

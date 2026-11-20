@@ -15,6 +15,8 @@ export const leaveRequestSchema = z
   });
 
 export const leaveActionSchema = z.object({
-  review_remarks: z.string().optional().default(''),
+  action_reason: z
+    .string()
+    .min(3, 'Please provide a clear rejection reason (at least 3 characters)')
+    .max(1000, 'Reason cannot exceed 1000 characters'),
 });
-

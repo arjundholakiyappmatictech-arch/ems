@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { AlertCircle, X } from 'lucide-react';
 import DailyReportsView from './DailyReportsView';
 import SubmitReportModal from './SubmitReportModal';
 import ReviewReportModal from './ReviewReportModal';
@@ -10,15 +11,18 @@ import {
   useUpdateDailyReportMutation,
   useReviewDailyReportMutation,
 } from '@/hooks/queries/useDailyReports';
-import { useIsManager } from '@/lib/store/authStore';
+import { useAuthStore, useIsManager } from '@/lib/store/authStore';
 
 export default function DailyReportsContainer() {
   const isManager = useIsManager();
+  const currentUser = useAuthStore((s) => s.user);
+  const currentEmployeeId = currentUser?.employee?.id;
 
   // Filters state
   const [searchTerm, setSearchTerm] = React.useState('');
   const [dateFilter, setDateFilter] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('all');
+  const [errorMessage, setErrorMessage] = React.useState('');
 
   // Modal states
   const [isSubmitModalOpen, setIsSubmitModalOpen] = React.useState(false);
@@ -35,25 +39,45 @@ export default function DailyReportsContainer() {
   const updateReportMutation = useUpdateDailyReportMutation();
   const reviewReportMutation = useReviewDailyReportMutation();
 
-  // Check if current user filed report today
+  // Identify today's report for the logged in user
   const todayStr = new Date().toISOString().slice(0, 10);
-  const hasReportToday = reports.some(
-    (rep) => (rep.report_date?.slice(0, 10) || rep.created_at?.slice(0, 10)) === todayStr
-  );
+  const todayReport = React.useMemo(() => {
+    return reports.find((rep) => {
+      const repDate = rep.date ? String(rep.date).slice(0, 10) : (rep.report_date ? String(rep.report_date).slice(0, 10) : '');
+      const isUserReport = currentEmployeeId
+        ? rep.employee?.id === currentEmployeeId
+        : rep.employee?.name === currentUser?.name;
+      return repDate === todayStr && isUserReport;
+    });
+  }, [reports, todayStr, currentEmployeeId, currentUser?.name]);
 
   // Submit report handler (create or edit)
   const handleSubmitReport = async (payload) => {
-    if (editingReport) {
-      await updateReportMutation.mutateAsync({ id: editingReport.id, payload });
-    } else {
-      await createReportMutation.mutateAsync(payload);
+    setErrorMessage('');
+    try {
+      if (editingReport) {
+        await updateReportMutation.mutateAsync({ id: editingReport.id, payload });
+      } else {
+        await createReportMutation.mutateAsync(payload);
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to submit report';
+      setErrorMessage(msg);
+      throw err;
     }
   };
 
   // Review report handler
   const handleReviewReport = async (payload) => {
-    if (reviewingReport) {
-      await reviewReportMutation.mutateAsync({ id: reviewingReport.id, payload });
+    setErrorMessage('');
+    try {
+      if (reviewingReport) {
+        await reviewReportMutation.mutateAsync({ id: reviewingReport.id, payload });
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to submit review';
+      setErrorMessage(msg);
+      throw err;
     }
   };
 
@@ -76,20 +100,24 @@ export default function DailyReportsContainer() {
   // Synchronously filter reports during render (zero useEffect)
   const filteredReports = React.useMemo(() => {
     return reports.filter((rep) => {
-      const user = rep.employee?.user;
-      const lowerSearch = searchTerm.toLowerCase();
+      const emp = rep.employee;
+      const empName = (emp?.name || emp?.user?.name || '').toLowerCase();
+      const empCode = (emp?.code || emp?.employee_code || '').toLowerCase();
+      const tasks = (rep.tasks_completed || rep.deliverables || '').toLowerCase();
+      const blockers = (rep.blockers || '').toLowerCase();
 
+      const search = searchTerm.toLowerCase();
       const matchesSearch =
         !searchTerm ||
-        rep.deliverables?.toLowerCase().includes(lowerSearch) ||
-        rep.blockers?.toLowerCase().includes(lowerSearch) ||
-        user?.name?.toLowerCase().includes(lowerSearch) ||
-        rep.employee?.employee_code?.toLowerCase().includes(lowerSearch);
+        tasks.includes(search) ||
+        blockers.includes(search) ||
+        empName.includes(search) ||
+        empCode.includes(search);
 
-      const repDate = rep.report_date ? String(rep.report_date).slice(0, 10) : '';
+      const repDate = rep.date ? String(rep.date).slice(0, 10) : (rep.report_date ? String(rep.report_date).slice(0, 10) : '');
       const matchesDate = !dateFilter || repDate === dateFilter;
 
-      const isReviewed = Boolean(rep.review_remarks);
+      const isReviewed = rep.status === 'reviewed' || Boolean(rep.manager_remarks);
       const matchesStatus =
         statusFilter === 'all' ||
         (statusFilter === 'reviewed' && isReviewed) ||
@@ -100,7 +128,24 @@ export default function DailyReportsContainer() {
   }, [reports, searchTerm, dateFilter, statusFilter]);
 
   return (
-    <>
+    <div className="space-y-6">
+      {/* Error Banner */}
+      {errorMessage && (
+        <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMessage('')}
+            className="text-rose-500 hover:text-rose-700 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       <DailyReportsView
         reports={filteredReports}
         searchTerm={searchTerm}
@@ -110,7 +155,9 @@ export default function DailyReportsContainer() {
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
         isManager={isManager}
-        hasReportToday={hasReportToday}
+        currentUserId={currentUser?.id}
+        currentEmployeeId={currentEmployeeId}
+        todayReport={todayReport}
         onOpenSubmitModal={handleOpenSubmit}
         onOpenEditModal={handleOpenEdit}
         onOpenReviewModal={handleOpenReview}
@@ -135,7 +182,6 @@ export default function DailyReportsContainer() {
           isLoading={reviewReportMutation.isPending}
         />
       )}
-    </>
+    </div>
   );
 }
-

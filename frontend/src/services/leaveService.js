@@ -12,7 +12,8 @@ import api from '@/lib/api/api';
  */
 export async function getLeaveTypes(signal) {
   const response = await api.get('/leave-types', { signal });
-  return response.data?.data ?? [];
+  const raw = response.data?.data;
+  return Array.isArray(raw) ? raw : (raw?.data ?? []);
 }
 
 /**
@@ -23,7 +24,8 @@ export async function getLeaveTypes(signal) {
  */
 export async function getLeaveRequests(filters = {}, signal) {
   const response = await api.get('/leave-requests', { params: filters, signal });
-  return response.data?.data ?? [];
+  const raw = response.data?.data;
+  return Array.isArray(raw) ? raw : (raw?.data ?? []);
 }
 
 /**
@@ -40,19 +42,18 @@ export async function createLeaveRequest(payload, signal) {
 /**
  * Approve a pending leave request (Manager only).
  * @param {number|string} id
- * @param {{ review_remarks?: string }} payload
  * @param {AbortSignal} [signal]
  * @returns {Promise<object>}
  */
-export async function approveLeaveRequest(id, payload = {}, signal) {
-  const response = await api.post(`/leave-requests/${id}/approve`, payload, { signal });
+export async function approveLeaveRequest(id, signal) {
+  const response = await api.post(`/leave-requests/${id}/approve`, {}, { signal });
   return response.data?.data;
 }
 
 /**
  * Reject a pending leave request (Manager only).
  * @param {number|string} id
- * @param {{ review_remarks: string }} payload
+ * @param {{ action_reason: string }} payload
  * @param {AbortSignal} [signal]
  * @returns {Promise<object>}
  */

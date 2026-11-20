@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { AlertCircle, X } from 'lucide-react';
 import AttendanceShiftCard from './AttendanceShiftCard';
 import AttendanceHistoryTable from './AttendanceHistoryTable';
 import {
@@ -18,6 +19,7 @@ export default function AttendanceContainer() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [dateFilter, setDateFilter] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('all');
+  const [errorMessage, setErrorMessage] = React.useState('');
 
   // Queries
   const { data: todayAttendance } = useTodayAttendanceQuery();
@@ -30,31 +32,35 @@ export default function AttendanceContainer() {
   const isPunchPending = clockInMutation.isPending || clockOutMutation.isPending;
 
   const handleClockIn = async () => {
+    setErrorMessage('');
     try {
-      await clockInMutation.mutateAsync();
+      await clockInMutation.mutateAsync({});
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to clock in');
+      setErrorMessage(err.response?.data?.message || 'Failed to clock in for shift');
     }
   };
 
   const handleClockOut = async () => {
+    setErrorMessage('');
     try {
-      await clockOutMutation.mutateAsync();
+      await clockOutMutation.mutateAsync({});
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to clock out');
+      setErrorMessage(err.response?.data?.message || 'Failed to clock out for shift');
     }
   };
 
-  // Synchronously filter attendances during render (zero useEffect)
+  // Synchronous filter during render (zero useEffect, pure derivation)
   const filteredAttendances = React.useMemo(() => {
     return attendances.filter((record) => {
-      const user = record.employee?.user;
-      const empCode = record.employee?.employee_code;
+      const emp = record.employee;
+      const empName = (emp?.name || emp?.user?.name || '').toLowerCase();
+      const empCode = (emp?.code || emp?.employee_code || '').toLowerCase();
 
+      const search = searchTerm.toLowerCase();
       const matchesSearch =
         !searchTerm ||
-        user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        empCode?.toLowerCase().includes(searchTerm.toLowerCase());
+        empName.includes(search) ||
+        empCode.includes(search);
 
       const recordDate = record.date ? String(record.date).slice(0, 10) : '';
       const matchesDate = !dateFilter || recordDate === dateFilter;
@@ -76,6 +82,23 @@ export default function AttendanceContainer() {
           Punch your daily shift, track working hours, and review historical attendance records.
         </p>
       </div>
+
+      {/* Error Banner */}
+      {errorMessage && (
+        <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMessage('')}
+            className="text-rose-500 hover:text-rose-700 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Shift Action Card */}
       <AttendanceShiftCard
@@ -102,4 +125,3 @@ export default function AttendanceContainer() {
     </div>
   );
 }
-

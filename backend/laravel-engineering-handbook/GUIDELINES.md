@@ -28,6 +28,7 @@
 | **Queue Dispatch**| Dispatch transactional jobs using `->afterCommit()` or after `DB::commit()` | Dispatching queue jobs inside transactions without commit hooks |
 | **Model Casting** | Use method-based `protected function casts(): array` for dates, decimals, booleans, hashes | Leaving booleans, decimals, and dates uncast |
 | **Foreign Keys** | Use `restrictOnDelete()` or soft deletes for financial and historical data | `cascadeOnDelete()` on orders, payments, or ledger records |
+| **API Resources & Payload Minimalism** | Ultra-thin API Resources returning presentation fields with standard audit timestamps (`created_at`, `updated_at`). Use `$this->when()` to omit unassigned nulls. Never return redundant raw foreign keys alongside relationship objects, duplicate name fields, or misleading supervisor nulls. | Bloated relational dumps; returning duplicate IDs/names; dumping empty null fields. |
 
 ---
 
@@ -68,8 +69,26 @@ Route::prefix('v1')->group(function () {
 ### C. ADR-001 Unified Response Envelope
 Every API response strictly conforms to this schema. On error, `data` is strictly `null` (never `[]`).
 ```json
-// 1. Success (HTTP 200/201):
+// 1. Success Single (HTTP 200/201):
 { "is_error": false, "message": "Resource created.", "data": { "id": 1 } }
+
+// 2. Success Paginated (HTTP 200):
+{
+  "is_error": false,
+  "message": "Items retrieved.",
+  "data": [ { "id": 1, ... } ],
+  "pagination": {
+    "current_page": 1,
+    "per_page": 15,
+    "total": 50,
+    "last_page": 4,
+    "current_page_url": "http://api.local/v1/items?page=1",
+    "next_page_url": "http://api.local/v1/items?page=2",
+    "prev_page_url": null,
+    "has_more_pages": true,
+    "has_data": true
+  }
+}
 
 // 2. Client/Server Error (HTTP 400, 401, 403, 404, 500):
 { "is_error": true, "message": "Order cannot be cancelled.", "data": null }

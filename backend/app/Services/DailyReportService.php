@@ -17,6 +17,7 @@ class DailyReportService
 {
     /**
      * Submit today's daily work report.
+     * Strictly 1 report per employee per calendar date.
      *
      * @param  array{tasks_completed: string, blockers?: string, next_plan?: string}  $data
      *
@@ -98,9 +99,18 @@ class DailyReportService
             throw new UnauthorizedRoleException;
         }
 
+        $employee = $report->employee;
+
         // Manager cannot review their own submitted daily report
-        if ($report->employee?->user_id === $user->id) {
+        if ($employee?->user_id === $user->id) {
             throw new CannotReviewOwnReportException;
+        }
+
+        // Direct Manager Review Enforcement:
+        // If employee has an assigned direct manager, only that manager can review the report.
+        $managerEmployeeId = $user->employee?->id;
+        if ($employee?->manager_id && $employee->manager_id !== $managerEmployeeId) {
+            throw new UnauthorizedRoleException("Only the employee's assigned direct manager can review this report.");
         }
 
         $report->update([

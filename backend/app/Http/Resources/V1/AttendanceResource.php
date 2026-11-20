@@ -17,26 +17,21 @@ class AttendanceResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'employee_id' => $this->employee_id,
-            'date' => $this->date->format('Y-m-d'),
-            'clock_in' => $this->clock_in->toIso8601String(),
-            'clock_out' => $this->clock_out?->toIso8601String(),
+            'date' => $this->date?->format('Y-m-d'),
+            'clock_in' => $this->clock_in?->format('H:i:s'),
+            'clock_out' => $this->clock_out?->format('H:i:s'),
             'total_hours' => $this->total_hours,
             'status' => $this->status,
             'notes' => $this->notes,
             'employee' => $this->whenLoaded('employee', function () {
-                return [
+                return $this->employee ? [
                     'id' => $this->employee->id,
-                    'employee_code' => $this->employee->employee_code,
-                    'full_name' => $this->employee->full_name,
-                ];
-            }),
-            'daily_report' => $this->whenLoaded('dailyReport', function () {
-                return new DailyReportResource($this->dailyReport);
+                    'name' => "{$this->employee->first_name} {$this->employee->last_name}",
+                    'code' => $this->employee->employee_code,
+                ] : null;
             }),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
 }
-

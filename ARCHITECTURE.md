@@ -7,7 +7,7 @@
 ## 1. Monorepo Topology
 
 ```
-Tomato Root/
+EMS Monorepo Root/
 ├── backend/                             # Laravel 12 API (PHP 8.4, PostgreSQL, Sanctum)
 │   ├── app/Services/                   # Flat Domain Services (Pure business logic)
 │   ├── app/Http/Controllers/           # Ultra-thin Controllers (Transaction boundaries)
@@ -52,8 +52,18 @@ Every response from Laravel is guaranteed to follow the ADR-001 JSON schema:
 {
   "is_error": false,
   "message": "Resource retrieved successfully.",
-  "data": { ... },
-  "errors": {}
+  "data": [ ... ],
+  "pagination": {
+    "current_page": 1,
+    "per_page": 15,
+    "total": 50,
+    "last_page": 4,
+    "current_page_url": "http://api.local/v1/resource?page=1",
+    "next_page_url": "http://api.local/v1/resource?page=2",
+    "prev_page_url": null,
+    "has_more_pages": true,
+    "has_data": true
+  }
 }
 ```
 
@@ -80,7 +90,7 @@ When Laravel validation fails (`422 Unprocessable Content`), errors return as:
 ---
 
 ### Contract 4: Authentication & Bearer Token Flow
-* **Issuance:** On successful customer or owner login (`POST /api/auth/login`), Laravel Sanctum returns an API Bearer token.
+* **Issuance:** On successful user login (`POST /api/v1/auth/login`), Laravel Sanctum returns an API Bearer token. Account provisioning is handled internally by managers via `POST /api/v1/employees/store` (no public self-registration).
 * **Storage:** Token is stored on the client under `localStorage.getItem('access_token')`.
 * **Transport:** The centralized Axios request interceptor (`src/lib/api/api.js`) automatically attaches `Authorization: Bearer <token>` to all outbound requests.
 * **Protection:** Protected Next.js pages are wrapped in `<AuthGuard>` to verify tokens before mounting private feature containers.
@@ -99,24 +109,23 @@ sequenceDiagram
     participant Service as Domain Service
     participant DB as PostgreSQL (Supabase)
 
-    UI->>Hook: User triggers action (e.g. Place Order)
-    Hook->>Axios: orderService.createOrder(payload, signal)
-    Axios->>Laravel: POST /api/orders/store (Bearer Token + JSON)
+    UI->>Hook: User triggers action (e.g. Apply for Leave)
+    Hook->>Axios: leaveService.createLeaveRequest(payload, signal)
+    Axios->>Laravel: POST /api/v1/leave-requests/store (Bearer Token + JSON)
     
-    Laravel->>Laravel: StoreOrderRequest validates rules
+    Laravel->>Laravel: StoreLeaveRequest validates quota & dates
     Laravel->>DB: DB::beginTransaction()
     
-    Laravel->>Service: orderService.createOrder(customer, data)
-    Service->>DB: SELECT * FROM carts WHERE id = 42 FOR UPDATE
-    Service->>DB: INSERT INTO orders (...)
-    Service->>DB: INSERT INTO order_items (...)
+    Laravel->>Service: leaveService.storeRequest(user, data)
+    Service->>DB: SELECT * FROM leave_types WHERE id = 1 FOR UPDATE
+    Service->>DB: INSERT INTO leave_requests (status = 'pending', ...)
     
     Laravel->>DB: DB::commit()
-    Laravel-->>Axios: 201 Created { is_error: false, data: { order } }
+    Laravel-->>Axios: 201 Created { is_error: false, data: { leave_request } }
     
     Axios-->>Hook: Unwrapped response.data?.data
-    Hook->>Hook: Invalidate orderKeys.all + cartKeys.all
-    Hook-->>UI: Sonner Toast: "Order placed successfully!"
+    Hook->>Hook: Invalidate leaveKeys.requests()
+    Hook-->>UI: Toast: "Leave request submitted successfully!"
 ```
 
 ---

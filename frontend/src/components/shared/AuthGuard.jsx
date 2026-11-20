@@ -16,11 +16,16 @@ export default function AuthGuard({ children }) {
     hydrate();
   }, [hydrate]);
 
+  const isPublicRoute = pathname.startsWith('/login') || pathname.startsWith('/register');
+
   React.useEffect(() => {
-    if (isHydrated && !isAuthenticated && !pathname.startsWith('/login')) {
+    if (isHydrated && !isAuthenticated && !isPublicRoute) {
       router.replace('/login');
     }
-  }, [isHydrated, isAuthenticated, pathname, router]);
+    if (isHydrated && isAuthenticated && isPublicRoute) {
+      router.replace('/');
+    }
+  }, [isHydrated, isAuthenticated, isPublicRoute, router]);
 
   if (!isHydrated) {
     return (
@@ -33,7 +38,7 @@ export default function AuthGuard({ children }) {
     );
   }
 
-  if (!isAuthenticated && !pathname.startsWith('/login')) {
+  if (!isAuthenticated && !isPublicRoute) {
     return null;
   }
 

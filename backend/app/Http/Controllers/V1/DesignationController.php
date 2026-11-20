@@ -26,7 +26,7 @@ class DesignationController extends Controller
 
             return $this->successResponse(
                 'Designations retrieved successfully.',
-                DesignationResource::collection($designations)->response()->getData(true)
+                DesignationResource::collection($designations)
             );
         } catch (Throwable $e) {
             return $this->handleException($e);

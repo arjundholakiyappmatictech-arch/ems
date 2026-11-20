@@ -10,7 +10,8 @@ Before reading, writing, refactoring, documenting, or reviewing any frontend cod
 4. **5-Tier Data Flow:** Adhere strictly to: Page (RSC) $\rightarrow$ Feature Container (Client) $\rightarrow$ shadcn UI $\rightarrow$ TanStack Hook $\rightarrow$ Axios Service. Calling Axios or `fetch()` directly in JSX is forbidden.
 5. **State Separation:** Server state exclusively in TanStack Query v5; Client UI state in Zustand v5 with atomic selectors (`state => state.property`); Forms in React Hook Form + Zod v4. Zero `useEffect` for data fetching or derived state.
 6. **Backend Contract & ADR-001:** Services consume endpoints as defined in `ARCHITECTURE.md` / `backend/routes/api.php`. Always unwrap `response.data?.data`. Map 422 errors automatically to forms using `mapLaravelErrorsToForm()`.
-7. **Pragmatic Caching & UI Primacy:** Default `staleTime: 0` (no caching on transactional data like Cart, Orders, Checkout). UI exclusively uses shadcn/ui primitives (`components/ui/*.jsx`) and `lucide-react` icons.
+7. **Pragmatic Caching & UI Primacy:** Default `staleTime: 0` (no caching on operational data like Attendances, Leave Requests, Daily Reports). UI exclusively uses shadcn/ui primitives (`components/ui/*.jsx`) and `lucide-react` icons.
+8. **Visualizations, Tables & Bars (Official shadcn Libraries):** Charts and graphs must exclusively use official shadcn Chart primitives (`components/ui/chart.jsx` powered by `recharts`). Tables must exclusively use shadcn table primitives (`components/ui/table.jsx` and `@tanstack/react-table`). Progress and metric bars must exclusively use shadcn `<Progress />` (`@radix-ui/react-progress`). External chart kits (Chart.js, ApexCharts, CanvasJS) and third-party grids (MUI DataGrid, AG-Grid) are strictly forbidden.
 
 ---
 

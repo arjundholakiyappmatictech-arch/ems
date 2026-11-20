@@ -20,13 +20,10 @@ class DepartmentResource extends JsonResource
             'name' => $this->name,
             'code' => $this->code,
             'description' => $this->description,
-            'is_active' => $this->is_active,
-            'designations_count' => $this->whenCounted('designations'),
+            'is_active' => (bool) $this->is_active,
             'employees_count' => $this->whenCounted('employees'),
-            'designations' => DesignationResource::collection($this->whenLoaded('designations')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
 }
-

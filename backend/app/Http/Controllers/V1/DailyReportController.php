@@ -27,7 +27,7 @@ class DailyReportController extends Controller
 
             return $this->successResponse(
                 'Daily work reports retrieved successfully.',
-                DailyReportResource::collection($reports)->response()->getData(true)
+                DailyReportResource::collection($reports)
             );
         } catch (Throwable $e) {
             return $this->handleException($e);

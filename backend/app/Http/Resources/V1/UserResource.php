@@ -20,7 +20,7 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->role,
-            'is_active' => $this->is_active,
+            'is_active' => (bool) $this->is_active,
             'employee' => $this->whenLoaded('employee', function () {
                 return new EmployeeResource($this->employee);
             }),
@@ -29,4 +29,3 @@ class UserResource extends JsonResource
         ];
     }
 }
-

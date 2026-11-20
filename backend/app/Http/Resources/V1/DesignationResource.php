@@ -20,13 +20,11 @@ class DesignationResource extends JsonResource
             'department_id' => $this->department_id,
             'title' => $this->title,
             'description' => $this->description,
-            'is_active' => $this->is_active,
-            'employees_count' => $this->whenCounted('employees'),
-            'department' => $this->whenLoaded('department', function () {
+            'is_active' => (bool) $this->is_active,
+            'department' => $this->when($this->relationLoaded('department') && $this->department, function () {
                 return [
                     'id' => $this->department->id,
                     'name' => $this->department->name,
-                    'code' => $this->department->code,
                 ];
             }),
             'created_at' => $this->created_at?->toIso8601String(),
@@ -34,4 +32,3 @@ class DesignationResource extends JsonResource
         ];
     }
 }
-

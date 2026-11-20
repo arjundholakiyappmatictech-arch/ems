@@ -1,6 +1,8 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
+import { ShieldAlert, ArrowLeft } from 'lucide-react';
 import EmployeeTable from './EmployeeTable';
 import OnboardEmployeeModal from './OnboardEmployeeModal';
 import {
@@ -11,6 +13,7 @@ import {
 import { useDepartmentListQuery } from '@/hooks/queries/useDepartments';
 import { useDesignationListQuery } from '@/hooks/queries/useDesignations';
 import { useIsManager } from '@/lib/store/authStore';
+import { Button } from '@/components/ui/button';
 
 export default function EmployeeDirectoryContainer() {
   const isManager = useIsManager();
@@ -22,8 +25,8 @@ export default function EmployeeDirectoryContainer() {
   const [isOnboardModalOpen, setIsOnboardModalOpen] = React.useState(false);
   const [updatingEmployeeId, setUpdatingEmployeeId] = React.useState(null);
 
-  // Queries
-  const { data: employees = [], isLoading } = useEmployeeListQuery();
+  // Queries (only fired for managers to respect backend 403 rule)
+  const { data: employees = [], isLoading } = useEmployeeListQuery({}, { enabled: isManager });
   const { data: departments = [] } = useDepartmentListQuery();
   const { data: designations = [] } = useDesignationListQuery();
 
@@ -48,13 +51,15 @@ export default function EmployeeDirectoryContainer() {
     await createEmployeeMutation.mutateAsync(payload);
   };
 
-  // Synchronously filter employees during render (zero useEffect)
+  // Filter employees
   const filteredEmployees = React.useMemo(() => {
-    return employees.filter((emp) => {
+    const list = Array.isArray(employees) ? employees : employees?.data ?? [];
+    return list.filter((emp) => {
       const user = emp.user || {};
+      const fullName = `${emp.first_name || ''} ${emp.last_name || ''} ${user.name || ''}`.toLowerCase();
       const matchesSearch =
         !searchTerm ||
-        user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        fullName.includes(searchTerm.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         emp.employee_code?.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -69,6 +74,26 @@ export default function EmployeeDirectoryContainer() {
     });
   }, [employees, searchTerm, departmentFilter, statusFilter]);
 
+  if (!isManager) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center max-w-md mx-auto">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-200/60 mb-3.5">
+          <ShieldAlert className="h-6 w-6" />
+        </div>
+        <h2 className="text-base font-bold text-slate-900 tracking-tight">Manager Directory Access Only</h2>
+        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+          The corporate employee directory is restricted to organizational management. You can review your personal workplace status on the dashboard.
+        </p>
+        <Link href="/" className="mt-4">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Return to Dashboard</span>
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -76,8 +101,8 @@ export default function EmployeeDirectoryContainer() {
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
           Employee Directory
         </h1>
-        <p className="text-sm text-slate-500">
-          Manage your organization&apos;s team roster, departments, and active statuses.
+        <p className="text-xs text-slate-500 mt-0.5">
+          Manage corporate roster, departments, reporting lines, and active employment statuses.
         </p>
       </div>
 
@@ -98,17 +123,15 @@ export default function EmployeeDirectoryContainer() {
       />
 
       {/* Onboarding Dialog */}
-      {isManager && (
-        <OnboardEmployeeModal
-          isOpen={isOnboardModalOpen}
-          onClose={() => setIsOnboardModalOpen(false)}
-          departments={departments}
-          designations={designations}
-          onSubmit={handleOnboardSubmit}
-          isLoading={createEmployeeMutation.isPending}
-        />
-      )}
+      <OnboardEmployeeModal
+        isOpen={isOnboardModalOpen}
+        onClose={() => setIsOnboardModalOpen(false)}
+        departments={departments}
+        designations={designations}
+        managers={filteredEmployees.filter((e) => e.user?.role === 'manager')}
+        onSubmit={handleOnboardSubmit}
+        isLoading={createEmployeeMutation.isPending}
+      />
     </div>
   );
 }
-

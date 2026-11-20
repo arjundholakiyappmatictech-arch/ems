@@ -73,100 +73,121 @@ export default function ApplyLeaveModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CalendarPlus className="h-5 w-5 text-blue-600" />
-            Apply for Leave
-          </DialogTitle>
-          <DialogDescription>
-            Submit a formal leave application for manager approval.
-          </DialogDescription>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 border border-blue-200/60">
+              <CalendarPlus className="h-5 w-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-lg font-semibold text-slate-900">
+                Apply for Leave
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                Submit a formal leave application for manager review and approval.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 py-2">
           {/* Leave Type */}
           <div className="space-y-1.5">
-            <Label htmlFor="leave-type">Leave Category *</Label>
+            <Label htmlFor="leave-type" className="text-xs font-medium text-slate-700">
+              Leave Category *
+            </Label>
             <select
               id="leave-type"
-              className="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-1 text-sm shadow-xs focus:outline-none focus:ring-1 focus:ring-blue-600 disabled:opacity-50"
+              className="flex h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-1 text-xs text-slate-800 shadow-2xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-600 disabled:opacity-50 transition-colors"
               disabled={isLoading}
               {...register('leave_type_id')}
             >
               <option value="">Select Leave Category</option>
               {leaveTypes.map((type) => (
                 <option key={type.id} value={type.id}>
-                  {type.name} ({type.days_allowed} days/yr)
+                  {type.name} ({type.days_per_year ?? type.days_allowed ?? 12} days/yr)
                 </option>
               ))}
             </select>
             {errors.leave_type_id && (
-              <p className="text-xs font-medium text-red-600">{errors.leave_type_id.message}</p>
+              <p className="text-[11px] font-medium text-rose-600">{errors.leave_type_id.message}</p>
             )}
           </div>
 
           {/* Dates */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="start-date">Start Date *</Label>
+              <Label htmlFor="start-date" className="text-xs font-medium text-slate-700">
+                Start Date *
+              </Label>
               <Input
                 id="start-date"
                 type="date"
                 disabled={isLoading}
+                className="h-9 text-xs"
                 {...register('start_date')}
               />
               {errors.start_date && (
-                <p className="text-xs font-medium text-red-600">{errors.start_date.message}</p>
+                <p className="text-[11px] font-medium text-rose-600">{errors.start_date.message}</p>
               )}
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="end-date">End Date *</Label>
+              <Label htmlFor="end-date" className="text-xs font-medium text-slate-700">
+                End Date *
+              </Label>
               <Input
                 id="end-date"
                 type="date"
                 disabled={isLoading}
+                className="h-9 text-xs"
                 {...register('end_date')}
               />
               {errors.end_date && (
-                <p className="text-xs font-medium text-red-600">{errors.end_date.message}</p>
+                <p className="text-[11px] font-medium text-rose-600">{errors.end_date.message}</p>
               )}
             </div>
           </div>
 
           {/* Duration Summary */}
-          <div className="flex items-center justify-between rounded-lg bg-blue-50/70 p-3 border border-blue-100 text-xs">
+          <div className="flex items-center justify-between rounded-xl bg-blue-50/60 p-3 border border-blue-100 text-xs shadow-2xs">
             <span className="text-blue-700 flex items-center gap-1.5 font-medium">
               <CalendarDays className="h-4 w-4" /> Requested Duration:
             </span>
-            <span className="font-bold text-blue-900 text-sm">
+            <span className="font-bold text-blue-900 text-sm font-mono">
               {daysCount} {daysCount === 1 ? 'Day' : 'Days'}
             </span>
           </div>
 
           {/* Reason */}
           <div className="space-y-1.5">
-            <Label htmlFor="leave-reason">Reason for Absence *</Label>
+            <Label htmlFor="leave-reason" className="text-xs font-medium text-slate-700">
+              Reason for Absence *
+            </Label>
             <Textarea
               id="leave-reason"
-              placeholder="Provide context for your leave request..."
-              className="min-h-[80px]"
+              placeholder="Provide reason and relevant context for your leave request..."
+              className="min-h-[85px] text-xs resize-y"
               disabled={isLoading}
               {...register('reason')}
             />
             {errors.reason && (
-              <p className="text-xs font-medium text-red-600">{errors.reason.message}</p>
+              <p className="text-[11px] font-medium text-rose-600">{errors.reason.message}</p>
             )}
           </div>
 
-          <DialogFooter className="pt-3 border-t border-slate-100">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+          <DialogFooter className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+            <Button
+              type="submit"
+              size="sm"
+              disabled={isLoading}
+              className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 gap-1.5 font-medium"
+            >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Submitting...</span>
                 </>
               ) : (
                 'Submit Application'
@@ -178,4 +199,3 @@ export default function ApplyLeaveModal({
     </Dialog>
   );
 }
-

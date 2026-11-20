@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Clock, CheckCircle2, LogIn, LogOut, Loader2 } from 'lucide-react';
+import { CheckCircle2, LogIn, LogOut, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -9,6 +9,7 @@ import {
   useClockInMutation,
   useClockOutMutation,
 } from '@/hooks/queries/useAttendances';
+import { parseAttendanceDateTime } from '@/lib/utils';
 
 export default function HeaderPunchWidget() {
   const { data: today, isLoading } = useTodayAttendanceQuery();
@@ -16,6 +17,41 @@ export default function HeaderPunchWidget() {
   const clockOutMutation = useClockOutMutation();
 
   const isPending = clockInMutation.isPending || clockOutMutation.isPending;
+
+  // Live Elapsed Ticker State
+  const [elapsed, setElapsed] = React.useState('');
+
+  React.useEffect(() => {
+    if (!today?.clock_in || today?.clock_out) {
+      setElapsed('');
+      return;
+    }
+
+    const updateTimer = () => {
+      try {
+        const start = parseAttendanceDateTime(today.clock_in, today.date);
+        if (!start) {
+          setElapsed('');
+          return;
+        }
+        const diffMs = Math.max(0, Date.now() - start.getTime());
+
+        const hours = Math.floor(diffMs / 3600000);
+        const minutes = Math.floor((diffMs % 3600000) / 60000);
+        const seconds = Math.floor((diffMs % 60000) / 1000);
+
+        setElapsed(
+          `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+        );
+      } catch {
+        setElapsed('');
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [today?.clock_in, today?.clock_out, today?.date]);
 
   const handleClockIn = async () => {
     try {
@@ -35,67 +71,71 @@ export default function HeaderPunchWidget() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 text-xs text-slate-400">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span>Syncing punch...</span>
+      <div className="flex items-center gap-1.5 text-xs text-slate-400">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        <span className="hidden sm:inline">Syncing shift...</span>
       </div>
     );
   }
 
-  // Not clocked in yet today
+  // State 1: Not clocked in yet today
   if (!today || !today.clock_in) {
     return (
       <Button
         size="sm"
         variant="default"
-        className="bg-emerald-600 hover:bg-emerald-700 text-xs h-8"
+        className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs h-8 px-3 gap-1.5 shadow-2xs font-medium"
         onClick={handleClockIn}
         disabled={isPending}
       >
         {isPending ? (
-          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : (
-          <LogIn className="mr-1 h-3.5 w-3.5" />
+          <LogIn className="h-3.5 w-3.5" />
         )}
-        Clock In
+        <span>Clock In</span>
       </Button>
     );
   }
 
-  // Clocked in and still working
+  // State 2: Currently clocked in and working (Live Ticker Active!)
   if (today.clock_in && !today.clock_out) {
     return (
       <div className="flex items-center gap-2">
-        <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800 text-xs">
-          <Clock className="mr-1 h-3 w-3 text-emerald-600" />
-          In: {today.clock_in.substring(11, 16) || today.clock_in}
-        </Badge>
+        <div className="flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 text-xs text-emerald-800 font-mono font-medium shadow-2xs">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
+          <span className="text-[11px] font-semibold tracking-tight text-emerald-900">
+            {elapsed || 'Active Shift'}
+          </span>
+        </div>
+
         <Button
           size="sm"
-          variant="destructive"
-          className="text-xs h-8"
+          variant="outline"
+          className="text-xs h-8 px-2.5 border-rose-200 text-rose-700 hover:bg-rose-50 hover:border-rose-300 gap-1.5 font-medium shadow-2xs"
           onClick={handleClockOut}
           disabled={isPending}
         >
           {isPending ? (
-            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
-            <LogOut className="mr-1 h-3.5 w-3.5" />
+            <LogOut className="h-3.5 w-3.5" />
           )}
-          Clock Out
+          <span>Clock Out</span>
         </Button>
       </div>
     );
   }
 
-  // Completed day shift
+  // State 3: Completed day shift
   return (
     <div className="flex items-center gap-1.5">
-      <Badge variant="secondary" className="bg-slate-100 text-slate-700 text-xs">
-        <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-blue-600" />
-        Shift Done ({today.total_hours ?? 'Completed'}h)
+      <Badge variant="success" className="text-xs font-medium py-1 px-2.5" dot={true}>
+        Shift Done ({today.total_hours ? `${today.total_hours}h` : 'Logged'})
       </Badge>
     </div>
   );
 }
-

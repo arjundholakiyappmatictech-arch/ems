@@ -21,8 +21,8 @@ return new class extends Migration
             $table->date('date_of_birth')->nullable();
             $table->string('gender', 20)->nullable(); // 'male', 'female', 'other'
             $table->date('joining_date');
-            $table->foreignId('department_id')->constrained('departments')->restrictOnDelete();
-            $table->foreignId('designation_id')->constrained('designations')->restrictOnDelete();
+            $table->foreignId('department_id')->nullable()->constrained('departments')->nullOnDelete();
+            $table->foreignId('designation_id')->nullable()->constrained('designations')->nullOnDelete();
             $table->foreignId('manager_id')->nullable()->constrained('employees')->nullOnDelete();
             $table->decimal('salary', 12, 2)->default(0.00);
             $table->string('status', 20)->default('probation'); // 'active', 'probation', 'on_leave', 'terminated'

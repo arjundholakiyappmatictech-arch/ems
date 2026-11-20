@@ -1,8 +1,8 @@
 # Project Requirements: Employee Management System (EMS)
 
-> **Document Version:** 2.2.0  
+> **Document Version:** 2.3.0  
 > **Classification:** Core HRMS / Enterprise Operations  
-> **Status:** Approved Baseline Specification (Includes Attendance & Daily Work Reports)  
+> **Status:** Approved Baseline Specification (Includes Manager Self-Service Signup & Employee Onboarding Provisioning Model)  
 > **Governing Standards:** [`AGENTS.md`](AGENTS.md), [`ARCHITECTURE.md`](ARCHITECTURE.md), and [`backend/laravel-engineering-handbook/GUIDELINES.md`](backend/laravel-engineering-handbook/GUIDELINES.md)
 
 ---
@@ -55,8 +55,8 @@ The system simplifies access into two clean, unambiguous roles:
 
 | Role Code | Role Name | System Scope | Responsibilities & Capabilities |
 | :--- | :--- | :--- | :--- |
-| **`manager`** | Operational Manager / Lead | Administrative & Supervisory | Full control over organizational structure, onboarding/managing employees, leave policy configuration, leave approvals, attendance auditing, and reviewing daily work reports with feedback. |
-| **`employee`** | Individual Contributor | Self-Scoped & Directory | Self-service profile viewing, company directory lookup, clock-in/out, submitting daily work reports, submitting leave requests, and cancelling own pending requests. |
+| **`manager`** | Operational Manager / Lead | Administrative & Supervisory | **Internal Corporate ERP:** Initial manager account is provisioned via system seed. Full control over organizational structure, onboarding/managing employees (and other managers), leave policy configuration, leave approvals, attendance auditing, and reviewing daily work reports with feedback. |
+| **`employee`** | Individual Contributor | Self-Scoped & Directory | **Login-Only Access (No Public Self-Registration):** Must be provisioned and onboarded exclusively by an organizational Manager via `POST /api/v1/employees/store`. Self-service profile viewing, company directory lookup, clock-in/out, submitting daily work reports, submitting leave requests, and cancelling own pending requests. |
 
 ### Feature Permission Matrix
 
@@ -65,7 +65,8 @@ The system simplifies access into two clean, unambiguous roles:
 | **Authentication** | Login / Logout / View Self Session | Yes | Yes |
 | **Departments & Designations** | Create / Update / Delete | Yes | No |
 | **Departments & Designations** | List / View Details | Yes | Yes |
-| **Employee Directory** | List Directory / Search Basic Cards | Yes (Full) | Yes (Company Directory) |
+| **Employee Directory** | List Directory / Search All Employees | Yes (Full) | No (Blocked - 403) |
+| **Employee Profiles** | View Profile by ID | Yes (Any Profile) | Self Only (Own ID Only - 403 on others) |
 | **Employee Profiles** | Create / Onboard New Profile | Yes | No |
 | **Employee Profiles** | Edit Full Profile (Demographics + Job) | Yes | No |
 | **Employee Profiles** | View Sensitive Fields (Salary/Pay) | Yes | Self Only |
@@ -89,7 +90,7 @@ The system simplifies access into two clean, unambiguous roles:
 
 | Requirement ID | Name | Description | Inputs | Expected Output | Constraints & Rules |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **FR-AUTH-01** | User Login | Authenticate user with credentials and issue Bearer token. | `email`, `password`, `device_name` | Bearer token, User profile, Role (`manager` or `employee`) | Reject inactive accounts (`is_active = false`). |
+| **FR-AUTH-01** | User Login | Authenticate user with credentials and issue Bearer token. | `email`, `password`, `device_name` | Bearer token, User profile, Role (`manager` or `employee`) | Both Managers and Employees authenticate here. Reject inactive accounts (`is_active = false`). Public self-registration is disabled (ERP architecture). |
 | **FR-AUTH-02** | User Logout | Invalidate current user session token. | Auth Bearer Header | Success acknowledgment | Revoke active Sanctum token only. |
 | **FR-AUTH-03** | Get Current User | Retrieve authenticated user profile with linked employee record. | Auth Bearer Header | User entity + Employee entity | Eager load department, designation, and reporting manager. |
 
@@ -107,6 +108,7 @@ The system simplifies access into two clean, unambiguous roles:
 
 | Requirement ID | Name | Description | Inputs | Expected Output | Constraints & Rules |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **FR-EMP-00** | View Employees & Profile | Browse employee directory or inspect profile details. | `id` (for show), query filters (for index) | Employee list or profile entity | **Directory listing (`index`) is strictly restricted to `manager` (403 for employees).** Single profile view (`show`) is open to `manager` for any ID, and `employee` for their **own ID only** (403 on others). |
 | **FR-EMP-01** | Onboard Employee | Provision a new employee and generate linked user credentials. | `first_name`, `last_name`, `email`, `password`, `role`, `phone`, `joining_date`, `department_id`, `designation_id`, `manager_id`, `salary`, `status` | Created User & Employee entity | Must run inside atomic `DB::beginTransaction()`. Auto-generate `employee_code` (e.g. `EMP-0001`). Restricted to `manager`. |
 | **FR-EMP-02** | Update Profile | Update job and demographic information. | `id`, employee fields | Updated employee entity | Restricted to `manager`. |
 | **FR-EMP-03** | Status Transition | Transition employee lifecycle stage. | `id`, `status`, `reason` | Updated status acknowledgment | Valid transitions: `probation` $\rightarrow$ `active` $\rightarrow$ `terminated` or `on_leave`. Restricted to `manager`. |
@@ -125,9 +127,9 @@ The system simplifies access into two clean, unambiguous roles:
 
 | Requirement ID | Name | Description | Inputs | Expected Output | Constraints & Rules |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **FR-REP-01** | Submit Daily Report | Submit end-of-day summary of tasks and blockers. | `tasks_completed`, `blockers`, `next_plan` | Created daily report entity (`status = submitted`) | One report per employee per date (`unique(employee_id, date)`). Auto-links to today's attendance record if present. |
+| **FR-REP-01** | Submit Daily Report | Submit end-of-day summary of tasks and blockers. | `tasks_completed`, `blockers`, `next_plan` | Created daily report entity (`status = submitted`) | Strictly 1 report per employee per date (`unique(employee_id, date)`). Auto-links to today's attendance record if present. |
 | **FR-REP-02** | Update Daily Report | Revise today's submitted work report. | `tasks_completed`, `blockers`, `next_plan` | Updated daily report entity | Editable only on the same calendar day before manager review. |
-| **FR-REP-03** | Manager Review | Manager reviews report and provides feedback remarks. | `id`, `manager_remarks` | Updated daily report (`status = reviewed`, `reviewed_by`, `reviewed_at`) | Restricted to `manager`. Manager cannot review their own report. |
+| **FR-REP-03** | Manager Review | Direct manager reviews report and provides feedback remarks. | `id`, `manager_remarks` | Updated daily report (`status = reviewed`, `reviewed_by`, `reviewed_at`) | Restricted to `manager`. Only the employee's assigned direct manager can review (or any manager if unassigned). Manager cannot review their own report. |
 | **FR-REP-04** | Feed & History | View work reports feed across teams. | Filters: `date`, `employee_id`, `status` | Paginated daily reports feed | Employee sees own reports; Manager sees all reports across departments. |
 
 ### 3.6. Leave Management & Approval State Machine
@@ -135,8 +137,8 @@ The system simplifies access into two clean, unambiguous roles:
 | Requirement ID | Name | Description | Inputs | Expected Output | Constraints & Rules |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **FR-LVE-01** | Apply for Leave | Submit a new time-off request. | `leave_type_id`, `start_date`, `end_date`, `reason` | Created leave request (`status = pending`) | `start_date <= end_date`. Total days cannot exceed available quota for year. |
-| **FR-LVE-02** | Approve Request | Approve pending leave request. | `id` | Updated leave request (`status = approved`) | Restricted to `manager`. Cannot approve own leave request. |
-| **FR-LVE-03** | Reject Request | Decline pending leave request. | `id`, `action_reason` | Updated leave request (`status = rejected`) | Restricted to `manager`. Rejection reason is mandatory. |
+| **FR-LVE-02** | Approve Request | Approve pending leave request. | `id` | Updated leave request (`status = approved`) | Restricted to `manager`. Only the employee's assigned direct manager can approve (or any manager if unassigned). Cannot approve own leave request. |
+| **FR-LVE-03** | Reject Request | Decline pending leave request. | `id`, `action_reason` | Updated leave request (`status = rejected`) | Restricted to `manager`. Only the employee's assigned direct manager can reject (or any manager if unassigned). Rejection reason is mandatory. Cannot reject own leave request. |
 | **FR-LVE-04** | Cancel Request | Cancel a previously requested leave. | `id` | Updated leave request (`status = cancelled`) | Allowed only while status is `pending` by the owning employee. |
 
 ---
@@ -311,9 +313,41 @@ erDiagram
 
 ---
 
-## 6. Daily Work & Attendance Lifecycle Workflows
+## 6. System Workflows & Operations
 
-### 6.1. Daily Attendance & Reporting Flow
+### 6.1. Account Provisioning Flow (Manager Signup vs. Employee Onboarding)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Mgr as Organization Manager
+    actor Emp as Employee
+    participant UI as Next.js Frontend
+    participant Auth as Auth Controller
+    participant EmpCtrl as Employee Controller
+    participant Svc as Domain Services
+    participant DB as PostgreSQL DB
+
+    Note over Mgr,DB: Flow A: Employee Onboarding (Manager Provisions Employee / New Manager)
+    Mgr->>UI: Navigate to Directory -> Click "Onboard Employee"
+    Mgr->>UI: Fill employee details, role ('employee' or 'manager'), department, designation & initial password
+    UI->>EmpCtrl: POST /api/v1/employees/store
+    EmpCtrl->>Svc: store(User $manager, $employeeData)
+    Svc->>DB: INSERT into users (role, email, hashed_password)
+    Svc->>DB: INSERT into employees (linked user_id, code EMP-xxxx)
+    EmpCtrl-->>UI: 201 Created { employee profile }
+    Note over Mgr,Emp: Manager provides credentials to Employee / Manager
+
+    Note over Emp,DB: Flow B: User Access (Login Only — No Public Self-Registration)
+    Emp->>UI: Visit /login (Internal system — login only)
+    Emp->>UI: Enter Email & Password provided by Manager
+    UI->>Auth: POST /api/v1/auth/login
+    Auth->>DB: Authenticate credentials & check is_active = true
+    Auth-->>UI: 200 OK { token, user }
+    UI-->>Emp: Redirected to Role Dashboard / Self-Service
+```
+
+### 6.2. Daily Attendance & Reporting Flow
 
 ```mermaid
 sequenceDiagram
@@ -357,7 +391,7 @@ All routes are mounted under `/api/v1/` and return the ADR-001 JSON schema.
 
 | Feature Domain | Verb | URI Endpoint | Allowed Roles | Request Body Summary | Success Code |
 | :--- | :---: | :--- | :--- | :--- | :---: |
-| **Auth** | `POST` | `/api/v1/auth/login` | Public | `email`, `password`, `device_name` | `200 OK` |
+| **Auth** | `POST` | `/api/v1/auth/login` | Public (Manager & Employee) | `email`, `password`, `device_name` | `200 OK` |
 | **Auth** | `POST` | `/api/v1/auth/logout` | Authenticated | None (Bearer Header) | `200 OK` |
 | **Auth** | `GET` | `/api/v1/auth/me` | Authenticated | None (Bearer Header) | `200 OK` |
 | **Departments** | `GET` | `/api/v1/departments` | All | Query params: `page`, `search` | `200 OK` |

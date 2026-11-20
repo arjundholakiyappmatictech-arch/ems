@@ -172,6 +172,31 @@ class DatabaseSeeder extends Seeder
             // -----------------------------------------------------------------
             $defaultPassword = Hash::make('password123');
 
+            // 4.0 Admin Manager (admin@gmail.com / password)
+            $userAdmin = User::create([
+                'name' => 'Admin Manager',
+                'email' => 'admin@gmail.com',
+                'password' => Hash::make('password'),
+                'role' => 'manager',
+                'is_active' => true,
+            ]);
+
+            $empAdmin = Employee::create([
+                'user_id' => $userAdmin->id,
+                'employee_code' => 'EMP-0000',
+                'first_name' => 'Admin',
+                'last_name' => 'Manager',
+                'phone' => '+1-555-0000',
+                'date_of_birth' => '1985-01-01',
+                'gender' => 'other',
+                'joining_date' => '2020-01-01',
+                'department_id' => $engineering->id,
+                'designation_id' => $desigEngVp->id,
+                'manager_id' => null,
+                'salary' => 150000.00,
+                'status' => 'active',
+            ]);
+
             // 4.1 Primary Manager (John Carter)
             $userJohn = User::create([
                 'name' => 'John Carter',

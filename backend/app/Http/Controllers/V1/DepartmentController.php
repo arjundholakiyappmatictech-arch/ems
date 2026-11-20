@@ -26,7 +26,7 @@ class DepartmentController extends Controller
 
             return $this->successResponse(
                 'Departments retrieved successfully.',
-                DepartmentResource::collection($departments)->response()->getData(true)
+                DepartmentResource::collection($departments)
             );
         } catch (Throwable $e) {
             return $this->handleException($e);

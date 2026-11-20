@@ -17,40 +17,28 @@ class LeaveRequestResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'employee_id' => $this->employee_id,
-            'leave_type_id' => $this->leave_type_id,
-            'start_date' => $this->start_date->format('Y-m-d'),
-            'end_date' => $this->end_date->format('Y-m-d'),
+            'start_date' => $this->start_date?->format('Y-m-d'),
+            'end_date' => $this->end_date?->format('Y-m-d'),
             'total_days' => $this->total_days,
             'reason' => $this->reason,
             'status' => $this->status,
-            'actioned_by' => $this->actioned_by,
             'action_reason' => $this->action_reason,
-            'actioned_at' => $this->actioned_at?->toIso8601String(),
             'leave_type' => $this->whenLoaded('leaveType', function () {
-                return [
+                return $this->leaveType ? [
                     'id' => $this->leaveType->id,
                     'name' => $this->leaveType->name,
-                    'is_paid' => $this->leaveType->is_paid,
-                ];
+                ] : null;
             }),
             'employee' => $this->whenLoaded('employee', function () {
-                return [
+                return $this->employee ? [
                     'id' => $this->employee->id,
-                    'employee_code' => $this->employee->employee_code,
-                    'full_name' => $this->employee->full_name,
-                ];
-            }),
-            'actioned_by_user' => $this->whenLoaded('actionedByUser', function () {
-                return [
-                    'id' => $this->actionedByUser->id,
-                    'name' => $this->actionedByUser->name,
-                    'email' => $this->actionedByUser->email,
-                ];
+                    'name' => "{$this->employee->first_name} {$this->employee->last_name}",
+                    'code' => $this->employee->employee_code,
+                    'manager_id' => $this->employee->manager_id,
+                ] : null;
             }),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
 }
-

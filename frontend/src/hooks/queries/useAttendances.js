@@ -24,7 +24,7 @@ export function useTodayAttendanceQuery() {
     queryFn: ({ signal }) => getTodayAttendance(signal),
     enabled: Boolean(token),
     staleTime: 0,
-    refetchInterval: 60000, // Refresh punch timer every minute
+    refetchInterval: 30000, // Refresh punch status every 30s
   });
 }
 
@@ -47,9 +47,10 @@ export function useAttendanceListQuery(filters = {}) {
 export function useClockInMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => clockIn(),
+    mutationFn: (payload) => clockIn(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -60,10 +61,10 @@ export function useClockInMutation() {
 export function useClockOutMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => clockOut(),
+    mutationFn: (payload) => clockOut(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: attendanceKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
-

@@ -17,13 +17,14 @@ export const employeeKeys = {
   detail: (id) => [...employeeKeys.details(), id],
 };
 
-export function useEmployeeListQuery(filters = {}) {
+export function useEmployeeListQuery(filters = {}, options = {}) {
   const token = useAuthStore((s) => s.token);
   return useQuery({
     queryKey: employeeKeys.list(filters),
     queryFn: ({ signal }) => getEmployees(filters, signal),
     enabled: Boolean(token),
     staleTime: 0,
+    ...options,
   });
 }
 
