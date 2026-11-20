@@ -1,0 +1,140 @@
+# ==============================================================================
+# Root .gitignore - Full-Stack Laravel 12 + Next.js 16 Monorepo
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Operating System & System Files
+# ------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# ------------------------------------------------------------------------------
+# 2. IDE, Editor & AI Assistant Artifacts
+# ------------------------------------------------------------------------------
+.idea/
+.vscode/
+.zed/
+.nova/
+.codex/
+.cursor/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Laravel Boost & Local Agent MCP Configs (Local to developer machine)
+backend/.agents/mcp_config.json
+.agents/mcp_config.json
+mcp_config.json
+
+# ------------------------------------------------------------------------------
+# 3. Environment & Secret Files (STRICTLY FORBIDDEN TO COMMIT)
+# ------------------------------------------------------------------------------
+.env
+.env.*
+.env*.local
+!.env.example
+!**/.env.example
+*.pem
+*.key
+auth.json
+
+# ------------------------------------------------------------------------------
+# 4. Universal Dependencies & Package Managers
+# ------------------------------------------------------------------------------
+node_modules/
+vendor/
+.pnpm-store/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ------------------------------------------------------------------------------
+# 5. Frontend (Next.js 16 / React 19 / Turbopack / Vercel)
+# ------------------------------------------------------------------------------
+.next/
+frontend/.next/
+out/
+frontend/out/
+build/
+frontend/build/
+dist/
+frontend/dist/
+coverage/
+frontend/coverage/
+.turbo/
+frontend/.turbo/
+.vercel/
+frontend/.vercel/
+
+# TypeScript / Type Cache (Even with 100% Pure JS, Next.js may generate these)
+*.tsbuildinfo
+next-env.d.ts
+frontend/next-env.d.ts
+
+# Yarn / Package manager auxiliary
+frontend/.pnp
+frontend/.pnp.*
+frontend/.yarn/*
+!frontend/.yarn/patches
+!frontend/.yarn/plugins
+!frontend/.yarn/releases
+!frontend/.yarn/versions
+
+# ------------------------------------------------------------------------------
+# 6. Backend (Laravel 12 / PHP 8.4)
+# ------------------------------------------------------------------------------
+# Bootstrap cache (preserve directory .gitignore)
+backend/bootstrap/cache/*.php
+!backend/bootstrap/cache/.gitignore
+
+# Storage & framework cache (preserve directory .gitignore files)
+backend/storage/*.key
+backend/storage/pail/
+backend/storage/logs/*.log
+backend/storage/logs/*
+!backend/storage/logs/.gitignore
+backend/storage/framework/cache/data/*
+!backend/storage/framework/cache/data/.gitignore
+backend/storage/framework/cache/locks/*
+!backend/storage/framework/cache/locks/.gitignore
+backend/storage/framework/sessions/*
+!backend/storage/framework/sessions/.gitignore
+backend/storage/framework/views/*
+!backend/storage/framework/views/.gitignore
+backend/storage/framework/testing/*
+!backend/storage/framework/testing/.gitignore
+backend/storage/app/private/*
+!backend/storage/app/private/.gitignore
+backend/storage/app/public/*
+!backend/storage/app/public/.gitignore
+
+# Public build artifacts & symlinks
+backend/public/build/
+backend/public/hot/
+backend/public/storage
+backend/public/fonts-manifest.dev.json
+
+# SQLite & local database files
+*.sqlite
+*.sqlite-journal
+backend/database/*.sqlite
+backend/database/*.sqlite-journal
+db-backup/local-data.sql
+
+# Testing & Dev tools caches
+backend/.phpunit.result.cache
+backend/.phpunit.cache
+backend/.phpactor.json
+backend/_ide_helper.php
+backend/Homestead.json
+backend/Homestead.yaml
+backend/chartdb-main/
